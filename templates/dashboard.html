@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>📊 Financial Dashboard (Naira)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 30px auto; padding: 20px; background-color: #f4f6f9; color: #333; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        h2 { border-bottom: 2px solid #bdc3c7; padding-bottom: 5px; color: #34495e; }
+        
+        .summary-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; text-align: center; }
+        .net-balance { font-size: 2.5em; font-weight: bold; color: #27ae60; }
+        .negative { color: #c0392b !important; }
+
+        .dashboard-grid { display: flex; gap: 20px; margin-bottom: 30px; }
+        .column { flex: 1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        
+        ul { list-style: none; padding: 0; }
+        li { padding: 12px 0; border-bottom: 1px solid #ecf0f1; display: flex; justify-content: space-between; align-items: center; }
+        
+        .item-details { display: flex; flex-direction: column; }
+        .item-right { display: flex; align-items: center; gap: 10px; }
+        
+        .income-amt { color: #27ae60; font-weight: bold; }
+        .expense-amt { color: #c0392b; font-weight: bold; }
+        .date { color: #95a5a6; font-size: 0.85em; }
+        
+        .btn-delete { background: none; border: none; color: #e74c3c; font-size: 1.1em; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+        .btn-delete:hover { background-color: #fadbd8; }
+        
+        form.inline-form { display: inline; margin: 0; padding: 0; }
+        
+        .form-grid { display: flex; gap: 20px; }
+        .form-column { flex: 1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 92%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        
+        .btn-submit { color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-income { background: #27ae60; }
+        .btn-income:hover { background: #219653; }
+        .btn-expense { background: #e74c3c; }
+        .btn-expense:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Personal Financial Dashboard</h1>
+
+    <!-- 1. Net Summary Block with Commas -->
+    <div class="summary-box">
+        <h3>Current Net Balance</h3>
+        <div class="net-balance {% if net_profit < 0 %}negative{% endif %}">
+            ₦{{ "{:,.2f}".format(net_profit) }}
+        </div>
+    </div>
+
+    <!-- 2. Dual Ledger Lists -->
+    <div class="dashboard-grid">
+        <!-- Income Column -->
+        <div class="column">
+            <h2>💰 Income Logs</h2>
+            <ul>
+                {% for row in income_rows %}
+                <li>
+                    <div class="item-details">
+                        <strong>{{ row[0] }}</strong>
+                        <span class="date">{{ row[2] }}</span>
+                    </div>
+                    <div class="item-right">
+                        <span class="income-amt">+₦{{ "{:,.2f}".format(row[1]) }}</span>
+                        <form class="inline-form" action="/delete/income/{{ row[3] }}" method="POST">
+                            <button type="submit" class="btn-delete" title="Delete entry">🗑️</button>
+                        </form>
+                    </div>
+                </li>
+                {% else %}
+                <li>No income logged yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Expenses Column -->
+        <div class="column">
+            <h2>📉 Expense Logs</h2>
+            <ul>
+                {% for row in expense_rows %}
+                <li>
+                    <div class="item-details">
+                        <strong>{{ row[0] }}</strong>
+                        <span class="date">{{ row[2] }}</span>
+                    </div>
+                    <div class="item-right">
+                        <span class="expense-amt">-₦{{ "{:,.2f}".format(row[1]) }}</span>
+                        <form class="inline-form" action="/delete/expenses/{{ row[3] }}" method="POST">
+                            <button type="submit" class="btn-delete" title="Delete entry">🗑️</button>
+                        </form>
+                    </div>
+                </li>
+                {% else %}
+                <li>No expenses logged yet.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- 3. Dual Logging Forms -->
+    <div class="form-grid">
+        <div class="form-column">
+            <h2>💰 Add Income</h2>
+            <form action="/add_income" method="POST">
+                <div class="form-group">
+                    <label for="source">Income Source:</label>
+                    <input type="text" id="source" name="source" placeholder="e.g. Salary, Freelance" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Amount (₦):</label>
+                    <input type="number" id="amount" name="amount" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="income_date">Date:</label>
+                    <input type="date" id="income_date" name="date" required>
+                </div>
+                <button type="submit" class="btn-submit btn-income">Log Income</button>
+            </form>
+        </div>
+
+        <div class="form-column">
+            <h2>💸 Add Expense</h2>
+            <form action="/add_expense" method="POST">
+                <div class="form-group">
+                    <label for="item">Expense Item:</label>
+                    <input type="text" id="item" name="item" placeholder="e.g. Fuel, Data subscription" required>
+                </div>
+                <div class="form-group">
+                    <label for="cost">Amount (₦):</label>
+                    <input type="number" id="cost" name="cost" step="0.01" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label for="expense_date">Date:</label>
+                    <input type="date" id="expense_date" name="date" required>
+                </div>
+                <button type="submit" class="btn-submit btn-expense">Log Expense</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

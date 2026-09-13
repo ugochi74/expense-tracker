@@ -1,171 +1,95 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-import sqlite3
 import os
-from passlib.context import CryptContext
+from decimal import Decimal, InvalidOperation
+from functools import wraps
+import psycopg
+from psycopg.rows import dict_row
+from flask import Flask, flash, redirect, render_template, request, session, url_for
+from supabase import create_client
 
 app = Flask(__name__)
-app.secret_key = "super_secret_session_key_change_this_later"
+app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
+DATABASE_URL = os.environ.get("DATABASE_URL")
+supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY) if SUPABASE_URL and SUPABASE_ANON_KEY else None
 
-DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "income_tracker.db")
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row  # Enables named lookups: row['amount']
-    return conn
-
-def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            is_verified INTEGER DEFAULT 0
-        );
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS income (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            source TEXT,
-            amount REAL,
-            date TEXT
-        );
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS expenses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            item TEXT,
-            cost REAL,
-            date TEXT
-        );
-    """)
-    conn.commit()
-    conn.close()
-
-init_db()
+def db():
+    if not DATABASE_URL: raise RuntimeError("DATABASE_URL is not configured")
+    return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+def required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        return view(*args, **kwargs) if session.get("user") else redirect(url_for("login"))
+    return wrapped
+def user(): return session.get("user")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form.get("username").strip()
-        email = request.form.get("email").strip().lower()
-        password = request.form.get("password")
-        
-        hashed = pwd_context.hash(password)
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        try:
-            cursor.execute("INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?);", (username, email, hashed))
-            conn.commit()
-            return redirect(url_for("login"))
-        except sqlite3.IntegrityError:
-            return "Error: That email is already registered!"
-        finally:
-            conn.close()
+        name, email, password = request.form.get("username", "").strip(), request.form.get("email", "").strip().lower(), request.form.get("password", "")
+        if not name or not email or len(password) < 8:
+            flash("Enter a username, valid email, and password of at least 8 characters.", "error")
+        else:
+            try:
+                result = supabase.auth.sign_up({"email": email, "password": password, "options": {"data": {"username": name}}})
+                if result.user and result.session:
+                    session["user"] = {"id": result.user.id, "email": result.user.email, "username": name}; return redirect(url_for("home"))
+                flash("Account created. Check your email to verify your address before signing in.", "success"); return redirect(url_for("login"))
+            except Exception: flash("Unable to create that account. The email may already be registered.", "error")
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email = request.form.get("email").strip().lower()
-        password = request.form.get("password")
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, password_hash FROM users WHERE email = ?;", (email,))
-        user = cursor.fetchone()
-        conn.close()
-        
-        if user and pwd_context.verify(password, user["password_hash"]):
-            session["user_id"] = user["id"]
-            return redirect(url_for("home"))
-        return "Invalid credentials!"
+        try:
+            result = supabase.auth.sign_in_with_password({"email": request.form.get("email", "").strip().lower(), "password": request.form.get("password", "")})
+            u = result.user
+            if not u or not getattr(u, "email_confirmed_at", None):
+                flash("Verify your email address before signing in.", "error"); return render_template("login.html")
+            metadata = u.user_metadata or {}; session["user"] = {"id": u.id, "email": u.email, "username": metadata.get("username", u.email.split("@")[0])}; return redirect(url_for("home"))
+        except Exception: flash("Invalid email or password.", "error")
     return render_template("login.html")
 
 @app.route("/logout")
-def logout():
-    session.clear()
-    return redirect(url_for("login"))
+def logout(): session.clear(); return redirect(url_for("login"))
 
 @app.route("/")
+@required
 def home():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-        
-    user_id = session["user_id"]
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT username FROM users WHERE id = ?;", (user_id,))
-    user_profile = cursor.fetchone()
-    current_username = user_profile["username"] if user_profile else "User"
-    
-    cursor.execute("SELECT source, amount, date, id FROM income WHERE user_id = ? ORDER BY date DESC;", (user_id,))
-    income_rows = cursor.fetchall()
-    
-    cursor.execute("SELECT item, cost, date, id FROM expenses WHERE user_id = ? ORDER BY date DESC;", (user_id,))
-    expense_rows = cursor.fetchall()
-    conn.close()
-    
-    # FIXED: Uses correct key mappings to compute totals cleanly without crashing
-    total_income = sum(row["amount"] for row in income_rows)
-    total_expenses = sum(row["cost"] for row in expense_rows)
-    net_profit = total_income - total_expenses
-    
-    return render_template(
-        "dashboard.html", 
-        username=current_username, 
-        income_rows=income_rows, 
-        expense_rows=expense_rows, 
-        net_profit=net_profit
-    )
+    with db() as conn:
+        income = conn.execute("select id, source, amount, date from income where user_id=%s order by date desc,id desc", (user()["id"],)).fetchall()
+        expenses = conn.execute("select id, item, cost, date from expenses where user_id=%s order by date desc,id desc", (user()["id"],)).fetchall()
+    total_income = sum((r["amount"] for r in income), Decimal("0")); total_expenses = sum((r["cost"] for r in expenses), Decimal("0"))
+    return render_template("dashboard.html", username=user()["username"], income_rows=income, expense_rows=expenses, net_profit=total_income-total_expenses)
 
-@app.route("/add_income", methods=["POST"])
+def amount(value):
+    try:
+        n = Decimal(value)
+        if n <= 0: raise InvalidOperation
+        return n
+    except (InvalidOperation, TypeError): raise ValueError
+
+@app.post("/add_income")
+@required
 def add_income():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    source = request.form.get("source")
-    amount = float(request.form.get("amount", 0.0))
-    date = request.form.get("date")
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO income (user_id, source, amount, date) VALUES (?, ?, ?, ?);", (session["user_id"], source, amount, date))
-    conn.commit()
-    conn.close()
+    try:
+        with db() as conn: conn.execute("insert into income(user_id,source,amount,date) values(%s,%s,%s,%s)", (user()["id"], request.form.get("source", "").strip(), amount(request.form.get("amount")), request.form.get("date")))
+    except (ValueError, psycopg.Error): flash("Income could not be saved. Check the amount and date.", "error")
     return redirect(url_for("home"))
 
-@app.route("/add_expense", methods=["POST"])
+@app.post("/add_expense")
+@required
 def add_expense():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    item = request.form.get("item")
-    cost = float(request.form.get("cost", 0.0))
-    date = request.form.get("date")
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO expenses (user_id, item, cost, date) VALUES (?, ?, ?, ?);", (session["user_id"], item, cost, date))
-    conn.commit()
-    conn.close()
+    try:
+        with db() as conn: conn.execute("insert into expenses(user_id,item,cost,date) values(%s,%s,%s,%s)", (user()["id"], request.form.get("item", "").strip(), amount(request.form.get("cost")), request.form.get("date")))
+    except (ValueError, psycopg.Error): flash("Expense could not be saved. Check the amount and date.", "error")
     return redirect(url_for("home"))
 
-@app.route("/delete/<table_name>/<int:entry_id>", methods=["POST"])
+@app.post("/delete/<table_name>/<int:entry_id>")
+@required
 def delete_entry(table_name, entry_id):
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-    if table_name in ["income", "expenses"]:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(f"DELETE FROM {table_name} WHERE id = ? AND user_id = ?;", (entry_id, session["user_id"]))
-        conn.commit()
-        conn.close()
+    if table_name in {"income", "expenses"}:
+        with db() as conn: conn.execute(f"delete from {table_name} where id=%s and user_id=%s", (entry_id, user()["id"]))
     return redirect(url_for("home"))
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == "__main__": app.run(debug=os.environ.get("FLASK_DEBUG") == "1")

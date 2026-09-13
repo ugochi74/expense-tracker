@@ -228,6 +228,7 @@
     </header>
 
     <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<p style="color:#b91c1c">{{ message }}</p>{% endfor %}{% endwith %}
 
         <div class="metrics-grid">
             <div class="card">

@@ -106,6 +106,7 @@
 </head>
 <body>
     <div class="auth-card">
+        {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<p style="color:#b91c1c;font-size:.9rem">{{ message }}</p>{% endfor %}{% endwith %}
         <div class="logo-area">
             <h1>Create Account</h1>
             <p>Get started with your tracking tool</p>

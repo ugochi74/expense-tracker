@@ -1,10 +1,29 @@
 import os
+from email.utils import parseaddr
 from decimal import Decimal, InvalidOperation
 from functools import wraps
+from pathlib import Path
 import psycopg
 from psycopg.rows import dict_row
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from supabase import create_client
+
+def load_local_env(path=Path(__file__).with_name(".env")):
+    """Load simple KEY=VALUE settings for local runs without overriding exports."""
+    try:
+        with open(path, encoding="utf-8") as env_file:
+            for line in env_file:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key, value = key.strip(), value.strip()
+                if key and key not in os.environ:
+                    os.environ[key] = value.strip('"').strip("'")
+    except OSError:
+        pass
+
+load_local_env()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production")
@@ -23,31 +42,72 @@ def required(view):
     return wrapped
 def user(): return session.get("user")
 
+def valid_email(value):
+    """Return a normalized email only when it has a real local/domain part."""
+    address = (value or "").strip().lower()
+    _, parsed = parseaddr(address)
+    if parsed != address or "@" not in address:
+        return None
+    local, domain = address.rsplit("@", 1)
+    return address if local and domain and "." in domain else None
+
+def auth_ready():
+    if supabase is None:
+        flash("Authentication is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.", "error")
+        return False
+    return True
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        name, email, password = request.form.get("username", "").strip(), request.form.get("email", "").strip().lower(), request.form.get("password", "")
+        name = request.form.get("username", "").strip()
+        email = valid_email(request.form.get("email"))
+        password = request.form.get("password", "")
         if not name or not email or len(password) < 8:
             flash("Enter a username, valid email, and password of at least 8 characters.", "error")
+        elif not auth_ready():
+            pass
         else:
             try:
                 result = supabase.auth.sign_up({"email": email, "password": password, "options": {"data": {"username": name}}})
                 if result.user and result.session:
                     session["user"] = {"id": result.user.id, "email": result.user.email, "username": name}; return redirect(url_for("home"))
                 flash("Account created. Check your email to verify your address before signing in.", "success"); return redirect(url_for("login"))
-            except Exception: flash("Unable to create that account. The email may already be registered.", "error")
+            except Exception as exc:
+                app.logger.warning("Signup failed: %s", exc)
+                flash("Unable to create that account. The email may already be registered or the service is unavailable.", "error")
     return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        email = valid_email(request.form.get("email"))
+        password = request.form.get("password", "")
+        if not email or not password:
+            flash("Enter a valid email and password.", "error")
+            return render_template("login.html")
+        if not auth_ready():
+            return render_template("login.html")
         try:
-            result = supabase.auth.sign_in_with_password({"email": request.form.get("email", "").strip().lower(), "password": request.form.get("password", "")})
+            result = supabase.auth.sign_in_with_password({"email": email, "password": password})
             u = result.user
-            if not u or not getattr(u, "email_confirmed_at", None):
+            confirmed_at = getattr(u, "email_confirmed_at", None) or getattr(u, "confirmed_at", None)
+            if not u or not confirmed_at:
                 flash("Verify your email address before signing in.", "error"); return render_template("login.html")
             metadata = u.user_metadata or {}; session["user"] = {"id": u.id, "email": u.email, "username": metadata.get("username", u.email.split("@")[0])}; return redirect(url_for("home"))
-        except Exception: flash("Invalid email or password.", "error")
+        except Exception as exc:
+            app.logger.info("Login failed for %s: %s", email, exc)
+            # Supabase raises for unverified accounts before returning a user.
+            # Keep credential failures generic, but give verification failures
+            # the action the user can actually take.
+            error_code = str(getattr(exc, "code", "")).lower()
+            error_text = str(exc).lower()
+            if "email_not_confirmed" in error_code or "email not confirmed" in error_text:
+                flash("Verify your email address before signing in.", "error")
+            elif "invalid login credentials" in error_text or "invalid email or password" in error_text:
+                flash("Invalid email or password.", "error")
+            else:
+                flash("Unable to sign in right now. Please try again.", "error")
     return render_template("login.html")
 
 @app.route("/logout")

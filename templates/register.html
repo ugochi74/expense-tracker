@@ -116,17 +116,17 @@
             <!-- 🇳🇬 Clean, fully integrated Username input block -->
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="e.g. Chidi_99" required>
+                <input type="text" id="username" name="username" placeholder="e.g. Chidi_99" value="{{ request.form.get('username', '') }}" autocomplete="username" required>
             </div>
             
             <div class="form-group">
                 <label for="email">Email address</label>
-                <input type="email" id="email" name="email" placeholder="name@domain.com" required>
+                <input type="email" id="email" name="email" placeholder="name@domain.com" value="{{ request.form.get('email', '') }}" autocomplete="email" required>
             </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="At least 8 characters" required>
+                <input type="password" id="password" name="password" placeholder="At least 8 characters" autocomplete="new-password" required>
             </div>
             
             <button type="submit" class="btn-submit">Register Account</button>

@@ -4,183 +4,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Dashboard</title>
+    <title>Finance Tracker Pro — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #2c3e50;
-            --success: #2ecc71;
-            --danger: #e74c3c;
-            --light: #f8f9fa;
-            --dark: #34495e;
+            --bg: #0B0F14;
+            --surface: #131920;
+            --surface-2: #1B222B;
+            --border: #232B35;
+            --text: #F2F5F7;
+            --text-muted: #8993A3;
+            --text-faint: #5C6675;
+            --income: #22C55E;
+            --income-soft: rgba(34, 197, 94, 0.12);
+            --expense: #FB7859;
+            --expense-soft: rgba(251, 120, 89, 0.12);
+            --gold: #F5B942;
         }
+
+        * { box-sizing: border-box; }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: #f4f6f8;
-            color: var(--dark);
+            background: var(--bg);
+            color: var(--text);
+            font-feature-settings: "tnum";
         }
 
-        header {
-            background-color: var(--primary);
-            color: white;
-            padding: 1rem 2rem;
+        /* Layout: sidebar + main */
+        .app-shell {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            min-height: 100vh;
+        }
+
+        @media (max-width: 900px) {
+            .app-shell { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .mobile-nav { display: flex; }
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem 1rem;
             display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, var(--gold), #d99a1f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #1a1200;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .nav-section-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-faint);
+            font-weight: 700;
+            padding: 0 0.75rem;
+            margin: 0 0 0.5rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.65rem 0.75rem;
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            margin-bottom: 0.15rem;
+        }
+
+        .nav-item:hover {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .nav-item.active {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .nav-item.active .nav-dot { opacity: 1; }
+
+        .nav-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gold);
+            opacity: 0;
+            flex-shrink: 0;
+        }
+
+        .nav-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-icon svg { width: 100%; height: 100%; }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-row {
+            display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0.5rem;
+            font-size: 0.85rem;
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-        }
-
-        .user-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+        .user-row span { color: var(--text-muted); }
+        .user-row strong { color: var(--text); }
 
         .btn-logout {
-            background-color: transparent;
-            color: #fff;
-            border: 1px solid #fff;
-            padding: 0.4rem 0.8rem;
-            border-radius: 4px;
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.75rem;
+            border-radius: 7px;
             text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.2s;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all 0.15s;
         }
 
         .btn-logout:hover {
-            background-color: #fff;
-            color: var(--primary);
+            border-color: var(--text-muted);
+            color: var(--text);
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+        /* Mobile top nav */
+        .mobile-nav {
+            display: none;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .card {
-            background: white;
-            padding: 1.5rem;
+        .mobile-nav select {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            padding: 0.5rem;
+            font-family: inherit;
+            font-size: 0.85rem;
         }
 
-        .card h3 {
-            margin: 0 0 0.5rem 0;
-            color: #7f8c8d;
+        /* Main content */
+        main {
+            padding: 2rem 2.5rem 4rem;
+            max-width: 1000px;
+        }
+
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .flash {
+            background: var(--expense-soft);
+            border: 1px solid rgba(251, 120, 89, 0.35);
+            color: var(--expense);
+            padding: 0.8rem 1rem;
+            border-radius: 10px;
             font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin: 0 0 0.3rem;
+            letter-spacing: -0.01em;
+        }
+
+        .page-sub {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin: 0 0 1.75rem;
+        }
+
+        /* Hero balance (Overview) */
+        .hero {
+            background: linear-gradient(135deg, var(--surface-2), var(--surface));
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.2rem 2.4rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            top: -60%;
+            right: -10%;
+            width: 340px;
+            height: 340px;
+            background: radial-gradient(circle, rgba(245, 185, 66, 0.10), transparent 70%);
+        }
+
+        .hero-label {
+            font-size: 0.8rem;
             text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin: 0 0 0.6rem;
         }
 
-        .card .value {
-            font-size: 1.8rem;
-            font-weight: bold;
+        .hero-value {
+            font-size: 2.8rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0;
         }
 
-        .value.profit {
-            color: var(--success);
-        }
+        .hero-value.profit { color: var(--income); }
+        .hero-value.loss { color: var(--expense); }
 
-        .value.loss {
-            color: var(--danger);
-        }
-
-        .forms-grid {
+        .summary-row {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        @media (max-width: 768px) {
-            .forms-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        fieldset {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 1.5rem;
-            background: white;
-        }
-
-        legend {
-            font-weight: bold;
-            padding: 0 0.5rem;
-            color: var(--primary);
-        }
-
-        .form-group {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
             margin-bottom: 1rem;
         }
 
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.2rem 1.4rem;
+            cursor: pointer;
+            transition: border-color 0.15s, transform 0.1s;
+            text-align: left;
+            width: 100%;
+            font-family: inherit;
+        }
+
+        .summary-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-1px);
+        }
+
+        .summary-card .label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+            margin: 0 0 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .label-left { display: flex; align-items: center; gap: 0.4rem; }
+
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dot.income { background: var(--income); }
+        .dot.expense { background: var(--expense); }
+
+        .summary-card .amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .summary-card .amount.income { color: var(--income); }
+        .summary-card .amount.expense { color: var(--expense); }
+
+        .card-arrow {
+            color: var(--text-faint);
+            font-size: 0.9rem;
+        }
+
+        /* Forms */
+        fieldset {
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            background: var(--surface);
+            margin-bottom: 1.5rem;
+        }
+
+        legend {
+            font-weight: 700;
+            padding: 0 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        legend.income-legend { color: var(--income); }
+        legend.expense-legend { color: var(--expense); }
+        legend.plan-legend { color: var(--gold); }
+
+        .form-group { margin-bottom: 1rem; }
+
         .form-group label {
             display: block;
-            margin-bottom: 0.3rem;
-            font-size: 0.9rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
         .form-group input {
             width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 0.65rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface-2);
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .form-group input::placeholder { color: var(--text-faint); }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--gold);
         }
 
         .btn-submit {
-            background-color: var(--primary);
-            color: white;
             border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 4px;
+            padding: 0.7rem 1.2rem;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            font-size: 1rem;
+            font-size: 0.92rem;
+            font-weight: 700;
+            font-family: inherit;
+            transition: opacity 0.15s;
         }
 
-        .btn-submit:hover {
-            opacity: 0.9;
-        }
+        .btn-submit:hover { opacity: 0.88; }
 
-        .tables-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
+        .btn-submit.income-btn { background: var(--income); color: #052e14; }
+        .btn-submit.expense-btn { background: var(--expense); color: #2e0e04; }
+        .btn-submit.plan-btn { background: var(--gold); color: #1a1200; }
 
-        @media (max-width: 992px) {
-            .tables-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        .dot.plan { background: var(--gold); }
+        .amt-plan { color: var(--gold); font-weight: 600; }
 
+        /* Tables */
         .table-container {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.3rem;
         }
 
         .table-container h2 {
-            margin-top: 0;
-            border-bottom: 2px solid var(--light);
-            padding-bottom: 0.5rem;
+            margin: 0 0 1rem;
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         table {
@@ -189,172 +418,472 @@
             text-align: left;
         }
 
-        th,
-        td {
-            padding: 0.75rem;
-            border-bottom: 1px solid #eee;
+        th {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-faint);
+            font-weight: 600;
+            padding: 0 0.6rem 0.6rem;
+            border-bottom: 1px solid var(--border);
         }
 
-        th {
-            background-color: var(--light);
-            font-weight: 600;
+        td {
+            padding: 0.75rem 0.6rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
         }
+
+        tr:last-child td { border-bottom: none; }
+
+        tr:hover td { background: var(--surface-2); }
+
+        .amt-income { color: var(--income); font-weight: 600; }
+        .amt-expense { color: var(--expense); font-weight: 600; }
 
         .btn-delete {
             background: transparent;
-            color: var(--danger);
-            border: 1px solid var(--danger);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            font-family: inherit;
+            transition: all 0.15s;
         }
 
         .btn-delete:hover {
-            background-color: var(--danger);
-            color: white;
+            border-color: var(--expense);
+            color: var(--expense);
         }
+
+        .empty-row td {
+            text-align: center;
+            color: var(--text-faint);
+            padding: 2rem 0.6rem;
+        }
+
+        .row-actions {
+            display: flex;
+            gap: 0.4rem;
+            justify-content: flex-end;
+        }
+
+        .btn-edit {
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid var(--border);
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: inherit;
+            transition: all 0.15s;
+        }
+
+        .btn-edit:hover { border-color: var(--gold); }
+
+        .edit-row td { background: var(--surface-2); }
+
+        .inline-edit-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+
+        .inline-edit-form input {
+            padding: 0.5rem 0.6rem;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+
+        .inline-edit-form input[type="text"] { flex: 1; min-width: 120px; }
+        .inline-edit-form input[type="number"] { width: 110px; }
+        .inline-edit-form input[type="date"] { width: 150px; }
+
+        .inline-edit-form input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .btn-save {
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: inherit;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-family: inherit;
+        }
+
+        .btn-cancel:hover { color: var(--text); }
     </style>
 </head>
 
 <body>
 
-    <header>
-        <h1>₦ Finance Tracker Pro</h1>
-        <div class="user-actions">
-            <span>Welcome, <strong>{{ username }}</strong></span>
-            <a href="/logout" class="btn-logout">Logout</a>
-        </div>
-    </header>
+    <div class="app-shell">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">₦</div>
+                <h1>Finance Tracker Pro</h1>
+            </div>
 
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<p style="color:#b91c1c">{{ message }}</p>{% endfor %}{% endwith %}
+            <p class="nav-section-label">Overview</p>
+            <button class="nav-item active" data-view="overview">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                </span>
+                Dashboard
+                <span class="nav-dot" style="margin-left:auto;"></span>
+            </button>
 
-        <div class="metrics-grid">
-            <div class="card">
-                <h3>Net Balance</h3>
-                <div class="value {% if net_profit >= 0 %}profit{% else %}loss{% endif %}">
-                    ₦{{ "{:,.2f}".format(net_profit) }}
+            <p class="nav-section-label" style="margin-top:1.25rem;">Records</p>
+            <button class="nav-item" data-view="income">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+                </span>
+                Record Income
+                <span class="nav-dot" style="margin-left:auto;"></span>
+            </button>
+            <button class="nav-item" data-view="expenses">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                </span>
+                Record Expense
+                <span class="nav-dot" style="margin-left:auto;"></span>
+            </button>
+
+            <p class="nav-section-label" style="margin-top:1.25rem;">Planning</p>
+            <button class="nav-item" data-view="plans">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </span>
+                Future Plans
+                <span class="nav-dot" style="margin-left:auto;"></span>
+            </button>
+
+            <div class="sidebar-footer">
+                <div class="user-row">
+                    <span>Signed in as</span>
+                </div>
+                <div class="user-row">
+                    <strong>{{ username }}</strong>
+                    <a href="/logout" class="btn-logout">Log out</a>
                 </div>
             </div>
-        </div>
+        </aside>
 
-        <div class="forms-grid">
-            <form action="/add_income" method="POST">
-                <fieldset>
-                    <legend>➕ Record Income Source</legend>
-                    <div class="form-group">
-                        <label>Description / Source</label>
-                        <input type="text" name="source" placeholder="e.g. Salary, Business" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Amount (₦)</label>
-                        <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" name="date" required>
-                    </div>
-                    <button type="submit" class="btn-submit">Add Income Record</button>
-                </fieldset>
-            </form>
-
-            <form action="/add_expense" method="POST">
-                <fieldset>
-                    <legend>➖ Record Expense Allocation</legend>
-                    <div class="form-group">
-                        <label>Item Name</label>
-                        <input type="text" name="item" placeholder="e.g. Data subscription, Fuel" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Cost Value (₦)</label>
-                        <input type="number" name="cost" step="0.01" min="0.01" placeholder="0.00" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" name="date" required>
-                    </div>
-                    <button type="submit" class="btn-submit" style="background-color: #34495e;">Add Expense
-                        Record</button>
-                </fieldset>
-            </form>
-        </div>
-
-        <div class="tables-grid">
-
-            <div class="table-container">
-                <h2>Income Stream Breakdown</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Source</th>
-                            <th>Amount</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in income_rows %}
-                        <tr>
-                            <td>{{ row['date'] }}</td>
-                            <td>{{ row['source'] }}</td>
-                            <td style="color: var(--success); font-weight: 500;">+₦{{ "{:,.2f}".format(row['amount']) }}
-                            </td>
-                            </td>
-                            <td>
-                                <form action="/delete/income/{{ row['id'] }}" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn-delete"
-                                        onclick="return confirm('Delete this record?')">Remove</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" style="text-align: center; color: #999;">No recorded income entries yet.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <!-- Mobile nav (shown under 900px) -->
+        <div class="mobile-nav">
+            <div class="brand" style="margin-bottom:0;">
+                <div class="brand-mark">₦</div>
+                <h1>Finance Tracker</h1>
             </div>
-
-            <div class="table-container">
-                <h2>Expense Ledger Breakdown</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Item</th>
-                            <th>Cost</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in expense_rows %}
-                        <tr>
-                            <td>{{ row['date'] }}</td>
-                            <td>{{ row['item'] }}</td>
-                            <td style="color: var(--danger); font-weight: 500;">-₦{{ "{:,.2f}".format(row['cost']) }}
-                            </td>
-                            <td>
-                                <form action="/delete/expenses/{{ row['id'] }}" method="POST" style="display:inline;">
-                                    <button type="submit" class="btn-delete"
-                                        onclick="return confirm('Delete this record?')">Remove</button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" style="text-align: center; color: #999;">No recorded expense entries yet.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
+            <select id="mobileNavSelect">
+                <option value="overview">Dashboard</option>
+                <option value="income">Record Income</option>
+                <option value="expenses">Record Expense</option>
+                <option value="plans">Future Plans</option>
+            </select>
         </div>
+
+        <!-- Main content -->
+        <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="flash">{{ message }}</div>
+                {% endfor %}
+            {% endwith %}
+
+            <!-- OVERVIEW VIEW -->
+            <section class="view active" id="view-overview">
+                <h2 class="page-title">Good day, {{ username }} 👋</h2>
+                <p class="page-sub">Here's where your money stands right now.</p>
+
+                <div class="hero">
+                    <p class="hero-label">Net Balance</p>
+                    <p class="hero-value {% if net_profit >= 0 %}profit{% else %}loss{% endif %}">
+                        ₦{{ "{:,.2f}".format(net_profit) }}
+                    </p>
+                </div>
+
+                <div class="summary-row">
+                    <button class="summary-card" data-view="income">
+                        <p class="label">
+                            <span class="label-left"><span class="dot income"></span>Total Income</span>
+                            <span class="card-arrow">→</span>
+                        </p>
+                        <p class="amount income">₦{{ "{:,.2f}".format(income_rows | sum(attribute='amount')) }}</p>
+                    </button>
+                    <button class="summary-card" data-view="expenses">
+                        <p class="label">
+                            <span class="label-left"><span class="dot expense"></span>Total Expenses</span>
+                            <span class="card-arrow">→</span>
+                        </p>
+                        <p class="amount expense">₦{{ "{:,.2f}".format(expense_rows | sum(attribute='cost')) }}</p>
+                    </button>
+                </div>
+            </section>
+
+            <!-- INCOME VIEW -->
+            <section class="view" id="view-income">
+                <h2 class="page-title">Record Income</h2>
+                <p class="page-sub">Add a new income entry and review your full income history.</p>
+
+                <form action="/add_income" method="POST">
+                    <fieldset>
+                        <legend class="income-legend">➕ New Income Entry</legend>
+                        <div class="form-group">
+                            <label>Source</label>
+                            <input type="text" name="source" placeholder="e.g. Salary, Business" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount (₦)</label>
+                            <input type="number" name="amount" step="0.01" min="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" name="date" required>
+                        </div>
+                        <button type="submit" class="btn-submit income-btn">Add Income</button>
+                    </fieldset>
+                </form>
+
+                <div class="table-container">
+                    <h2><span class="dot income"></span>Income History</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Source</th>
+                                <th>Amount</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in income_rows %}
+                            <tr id="row-income-{{ row['id'] }}">
+                                <td>{{ row['date'] }}</td>
+                                <td>{{ row['source'] }}</td>
+                                <td class="amt-income">+₦{{ "{:,.2f}".format(row['amount']) }}</td>
+                                <td class="row-actions">
+                                    <button type="button" class="btn-edit" onclick="toggleEdit('income', {{ row['id'] }})">Edit</button>
+                                    <form action="/delete/income/{{ row['id'] }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn-delete" onclick="return confirm('Delete this record?')">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="edit-income-{{ row['id'] }}" class="edit-row" style="display:none;">
+                                <td colspan="4">
+                                    <form action="/edit/income/{{ row['id'] }}" method="POST" class="inline-edit-form">
+                                        <input type="text" name="source" value="{{ row['source'] }}" required>
+                                        <input type="number" name="amount" step="0.01" min="0.01" value="{{ row['amount'] }}" required>
+                                        <input type="date" name="date" value="{{ row['date'] }}" required>
+                                        <button type="submit" class="btn-save income-btn">Save</button>
+                                        <button type="button" class="btn-cancel" onclick="toggleEdit('income', {{ row['id'] }})">Cancel</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row"><td colspan="4">No income recorded yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- EXPENSES VIEW -->
+            <section class="view" id="view-expenses">
+                <h2 class="page-title">Record Expense</h2>
+                <p class="page-sub">Add a new expense entry and review your full expense history.</p>
+
+                <form action="/add_expense" method="POST">
+                    <fieldset>
+                        <legend class="expense-legend">➖ New Expense Entry</legend>
+                        <div class="form-group">
+                            <label>Item</label>
+                            <input type="text" name="item" placeholder="e.g. Data subscription, Fuel" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cost (₦)</label>
+                            <input type="number" name="cost" step="0.01" min="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" name="date" required>
+                        </div>
+                        <button type="submit" class="btn-submit expense-btn">Add Expense</button>
+                    </fieldset>
+                </form>
+
+                <div class="table-container">
+                    <h2><span class="dot expense"></span>Expense Ledger</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Item</th>
+                                <th>Cost</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in expense_rows %}
+                            <tr id="row-expenses-{{ row['id'] }}">
+                                <td>{{ row['date'] }}</td>
+                                <td>{{ row['item'] }}</td>
+                                <td class="amt-expense">-₦{{ "{:,.2f}".format(row['cost']) }}</td>
+                                <td class="row-actions">
+                                    <button type="button" class="btn-edit" onclick="toggleEdit('expenses', {{ row['id'] }})">Edit</button>
+                                    <form action="/delete/expenses/{{ row['id'] }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn-delete" onclick="return confirm('Delete this record?')">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="edit-expenses-{{ row['id'] }}" class="edit-row" style="display:none;">
+                                <td colspan="4">
+                                    <form action="/edit/expenses/{{ row['id'] }}" method="POST" class="inline-edit-form">
+                                        <input type="text" name="item" value="{{ row['item'] }}" required>
+                                        <input type="number" name="cost" step="0.01" min="0.01" value="{{ row['cost'] }}" required>
+                                        <input type="date" name="date" value="{{ row['date'] }}" required>
+                                        <button type="submit" class="btn-save expense-btn">Save</button>
+                                        <button type="button" class="btn-cancel" onclick="toggleEdit('expenses', {{ row['id'] }})">Cancel</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row"><td colspan="4">No expenses recorded yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- PLANS VIEW -->
+            <section class="view" id="view-plans">
+                <h2 class="page-title">Future Plans</h2>
+                <p class="page-sub">Set aside what you'd like to use your money for, and by when.</p>
+
+                <form action="/add_plan" method="POST">
+                    <fieldset>
+                        <legend class="plan-legend">🎯 New Plan</legend>
+                        <div class="form-group">
+                            <label>Goal</label>
+                            <input type="text" name="goal" placeholder="e.g. Save for a laptop, Rent renewal" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Amount (₦)</label>
+                            <input type="number" name="target_amount" step="0.01" min="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Date</label>
+                            <input type="date" name="target_date" required>
+                        </div>
+                        <button type="submit" class="btn-submit plan-btn">Add Plan</button>
+                    </fieldset>
+                </form>
+
+                <div class="table-container">
+                    <h2><span class="dot plan"></span>Planned Goals</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Target Date</th>
+                                <th>Goal</th>
+                                <th>Target Amount</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in plan_rows %}
+                            <tr id="row-plans-{{ row['id'] }}">
+                                <td>{{ row['target_date'] }}</td>
+                                <td>{{ row['goal'] }}</td>
+                                <td class="amt-plan">₦{{ "{:,.2f}".format(row['target_amount']) }}</td>
+                                <td class="row-actions">
+                                    <button type="button" class="btn-edit" onclick="toggleEdit('plans', {{ row['id'] }})">Edit</button>
+                                    <form action="/delete/plans/{{ row['id'] }}" method="POST" style="display:inline;">
+                                        <button type="submit" class="btn-delete" onclick="return confirm('Delete this plan?')">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr id="edit-plans-{{ row['id'] }}" class="edit-row" style="display:none;">
+                                <td colspan="4">
+                                    <form action="/edit/plans/{{ row['id'] }}" method="POST" class="inline-edit-form">
+                                        <input type="text" name="goal" value="{{ row['goal'] }}" required>
+                                        <input type="number" name="target_amount" step="0.01" min="0.01" value="{{ row['target_amount'] }}" required>
+                                        <input type="date" name="target_date" value="{{ row['target_date'] }}" required>
+                                        <button type="submit" class="btn-save plan-btn">Save</button>
+                                        <button type="button" class="btn-cancel" onclick="toggleEdit('plans', {{ row['id'] }})">Cancel</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr class="empty-row"><td colspan="4">No future plans added yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
-</body>
 
+    <script>
+        const navItems = document.querySelectorAll('.nav-item[data-view], .summary-card[data-view]');
+        const views = document.querySelectorAll('.view');
+        const sidebarNavItems = document.querySelectorAll('.sidebar .nav-item[data-view]');
+        const mobileSelect = document.getElementById('mobileNavSelect');
+
+        function switchView(viewName) {
+            views.forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + viewName).classList.add('active');
+
+            sidebarNavItems.forEach(item => {
+                item.classList.toggle('active', item.dataset.view === viewName);
+            });
+
+            mobileSelect.value = viewName;
+            window.scrollTo(0, 0);
+        }
+
+        navItems.forEach(el => {
+            el.addEventListener('click', () => switchView(el.dataset.view));
+        });
+
+        mobileSelect.addEventListener('change', (e) => switchView(e.target.value));
+
+        function toggleEdit(table, id) {
+            const displayRow = document.getElementById('row-' + table + '-' + id);
+            const editRow = document.getElementById('edit-' + table + '-' + id);
+            const isEditing = editRow.style.display !== 'none';
+            editRow.style.display = isEditing ? 'none' : 'table-row';
+            displayRow.style.display = isEditing ? 'table-row' : 'none';
+        }
+
+        // If a form submission failed and reloaded the page, this preserves
+        // "stay on the same view" behavior would require server-side state;
+        // for now every reload returns to Overview, which is expected.
+    </script>
+
+</body>
 </html>

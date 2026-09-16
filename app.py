@@ -200,6 +200,7 @@ def amount(value):
 def add_income():
     try:
         data_client().table("income").insert({"user_id": user()["id"], "source": request.form.get("source", "").strip(), "amount": str(amount(request.form.get("amount"))), "date": request.form.get("date")}).execute()
+        flash("Income added successfully!", "success")
     except RuntimeError as exc:
         flash(str(exc), "error")
         return redirect(url_for("login"))
@@ -213,6 +214,7 @@ def add_income():
 def add_expense():
     try:
         data_client().table("expenses").insert({"user_id": user()["id"], "item": request.form.get("item", "").strip(), "cost": str(amount(request.form.get("cost"))), "date": request.form.get("date")}).execute()
+        flash("Expense added successfully!", "success")
     except RuntimeError as exc:
         flash(str(exc), "error")
         return redirect(url_for("login"))
@@ -226,6 +228,7 @@ def add_expense():
 def add_plan():
     try:
         data_client().table("plans").insert({"user_id": user()["id"], "goal": request.form.get("goal", "").strip(), "target_amount": str(amount(request.form.get("target_amount"))), "target_date": request.form.get("target_date")}).execute()
+        flash("Plan added successfully!", "success")
     except RuntimeError as exc:
         flash(str(exc), "error")
         return redirect(url_for("login"))

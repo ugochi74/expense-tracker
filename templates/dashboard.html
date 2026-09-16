@@ -217,6 +217,12 @@
             border-radius: 10px;
             font-size: 0.9rem;
             margin-bottom: 1.5rem;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .flash.fade-out {
+            opacity: 0;
+            transform: translateY(-6px);
         }
 
         .page-title {
@@ -849,6 +855,21 @@
     </div>
 
     <script>
+        // Auto-dismiss flash messages after 4 seconds.
+        // setTimeout is the right tool here because each message only
+        // needs to disappear ONCE, a fixed time after the page loads —
+        // not on a repeating schedule (that's what setInterval is for).
+        document.querySelectorAll('.flash').forEach(function (el) {
+            setTimeout(function () {
+                el.classList.add('fade-out');
+                // Wait for the fade transition (0.4s, set in CSS) to finish
+                // before actually removing it from the page.
+                setTimeout(function () {
+                    el.remove();
+                }, 400);
+            }, 4000);
+        });
+
         const navItems = document.querySelectorAll('.nav-item[data-view], .summary-card[data-view]');
         const views = document.querySelectorAll('.view');
         const sidebarNavItems = document.querySelectorAll('.sidebar .nav-item[data-view]');

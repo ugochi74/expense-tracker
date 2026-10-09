@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import date
 from email.utils import parseaddr
 from decimal import Decimal, InvalidOperation
 from functools import wraps
@@ -184,7 +185,47 @@ def home():
     # PostgREST may decode numeric columns as strings or floats; normalize before arithmetic.
     total_income = sum((Decimal(str(r["amount"])) for r in income), Decimal("0"))
     total_expenses = sum((Decimal(str(r["cost"])) for r in expenses), Decimal("0"))
-    return render_template("dashboard.html", username=user()["username"], income_rows=income, expense_rows=expenses, plan_rows=plans, net_profit=total_income-total_expenses)
+    net_profit = total_income - total_expenses
+    upcoming_plans, plans_total = summarize_plans(plans, net_profit)
+    return render_template("dashboard.html", username=user()["username"], income_rows=income, expense_rows=expenses, plan_rows=plans, net_profit=net_profit, upcoming_plans=upcoming_plans, plans_total=plans_total)
+
+
+def summarize_plans(plans, net_balance, limit=4):
+    """
+    Build the data the dashboard overview needs for Future Plans:
+    the total planned amount, and the nearest few plans with days left and
+    how much of each goal the current net balance would cover on its own.
+    (Each goal is compared against the whole balance independently — the
+    balance isn't split between goals.)
+    """
+    today = date.today()
+    summarized = []
+    plans_total = Decimal("0")
+    for plan in plans:
+        try:
+            target = Decimal(str(plan["target_amount"]))
+        except (InvalidOperation, TypeError, KeyError):
+            continue
+        plans_total += target
+        try:
+            days_left = (date.fromisoformat(str(plan["target_date"])) - today).days
+        except (ValueError, TypeError, KeyError):
+            days_left = None
+        if target > 0 and net_balance > 0:
+            coverage = min(int(net_balance / target * 100), 100)
+        else:
+            coverage = 0
+        summarized.append({
+            "id": plan.get("id"),
+            "goal": plan.get("goal"),
+            "target_amount": target,
+            "target_date": plan.get("target_date"),
+            "days_left": days_left,
+            "coverage": coverage,
+        })
+    # Upcoming plans first (soonest on top), overdue or undated ones after.
+    summarized.sort(key=lambda p: (p["days_left"] is None or p["days_left"] < 0, p["days_left"] if p["days_left"] is not None else 0))
+    return summarized[:limit], plans_total
 
 
 def amount(value):

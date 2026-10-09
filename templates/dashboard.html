@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finance Tracker Pro Dashboard</title>
+    <title>Finance Tracker Pro — Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -476,6 +476,86 @@
             padding: 2rem 0.6rem;
         }
 
+        .summary-card .amount.plan { color: var(--gold); }
+
+        .card-note {
+            margin: 0.35rem 0 0;
+            font-size: 0.78rem;
+            color: var(--text-faint);
+        }
+
+        .upcoming-panel { margin-top: 1rem; }
+
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .panel-head h2 { margin: 0; }
+
+        .link-btn {
+            background: none;
+            border: none;
+            color: var(--gold);
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.2rem 0;
+        }
+
+        .link-btn:hover { text-decoration: underline; }
+
+        .upcoming-row {
+            padding: 0.9rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .upcoming-row:last-child { border-bottom: none; padding-bottom: 0.2rem; }
+
+        .upcoming-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .upcoming-goal { margin: 0 0 0.2rem; font-weight: 600; font-size: 0.95rem; }
+
+        .upcoming-meta { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+
+        .upcoming-meta .overdue { color: var(--expense); font-weight: 600; }
+        .upcoming-meta .due-soon { color: var(--gold); font-weight: 600; }
+
+        .upcoming-top .amt-plan { margin: 0; white-space: nowrap; }
+
+        .coverage-bar {
+            height: 6px;
+            background: var(--surface-2);
+            border-radius: 99px;
+            overflow: hidden;
+            margin: 0.7rem 0 0.3rem;
+        }
+
+        .coverage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), var(--income));
+            border-radius: 99px;
+        }
+
+        .coverage-label { margin: 0; font-size: 0.74rem; color: var(--text-faint); }
+
+        .upcoming-empty {
+            text-align: center;
+            padding: 1.5rem 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .upcoming-empty p { margin: 0 0 0.4rem; }
+
         .row-actions {
             display: flex;
             gap: 0.4rem;
@@ -654,6 +734,52 @@
                         </p>
                         <p class="amount expense">₦{{ "{:,.2f}".format(expense_rows | sum(attribute='cost')) }}</p>
                     </button>
+                    <button class="summary-card" data-view="plans">
+                        <p class="label">
+                            <span class="label-left"><span class="dot plan"></span>Planned Goals</span>
+                            <span class="card-arrow">→</span>
+                        </p>
+                        <p class="amount plan">₦{{ "{:,.2f}".format(plans_total) }}</p>
+                        <p class="card-note">{{ plan_rows | length }} goal{{ '' if plan_rows | length == 1 else 's' }} planned</p>
+                    </button>
+                </div>
+
+                <div class="table-container upcoming-panel">
+                    <div class="panel-head">
+                        <h2><span class="dot plan"></span>Upcoming Plans</h2>
+                        <button type="button" class="link-btn" data-view="plans">View all →</button>
+                    </div>
+
+                    {% for p in upcoming_plans %}
+                    <div class="upcoming-row">
+                        <div class="upcoming-top">
+                            <div>
+                                <p class="upcoming-goal">{{ p.goal }}</p>
+                                <p class="upcoming-meta">
+                                    {{ p.target_date }}
+                                    {% if p.days_left is none %}
+                                    {% elif p.days_left < 0 %}
+                                        · <span class="overdue">overdue by {{ -p.days_left }} day{{ '' if p.days_left == -1 else 's' }}</span>
+                                    {% elif p.days_left == 0 %}
+                                        · <span class="due-soon">due today</span>
+                                    {% else %}
+                                        · {{ p.days_left }} day{{ '' if p.days_left == 1 else 's' }} left
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <p class="amt-plan">₦{{ "{:,.2f}".format(p.target_amount) }}</p>
+                        </div>
+                        <div class="coverage-bar" title="Your current net balance covers {{ p.coverage }}% of this goal">
+                            <div class="coverage-fill" style="width: {{ p.coverage }}%;"></div>
+                        </div>
+                        <p class="coverage-label">Your balance covers {{ p.coverage }}% of this goal</p>
+                    </div>
+                    {% else %}
+                    <div class="upcoming-empty">
+                        <p>No plans yet. Set a goal for what you want to use your money for.</p>
+                        <button type="button" class="link-btn" data-view="plans">Add your first plan →</button>
+                    </div>
+                    {% endfor %}
                 </div>
             </section>
 
@@ -798,7 +924,7 @@
 
                 <form action="/add_plan" method="POST">
                     <fieldset>
-                        <legend class="plan-legend">New Plan</legend>
+                        <legend class="plan-legend">🎯 New Plan</legend>
                         <div class="form-group">
                             <label>Goal</label>
                             <input type="text" name="goal" placeholder="e.g. Save for a laptop, Rent renewal" required>
@@ -876,7 +1002,7 @@
             }, 4000);
         });
 
-        const navItems = document.querySelectorAll('.nav-item[data-view], .summary-card[data-view]');
+        const navItems = document.querySelectorAll('.nav-item[data-view], .summary-card[data-view], .link-btn[data-view]');
         const views = document.querySelectorAll('.view');
         const sidebarNavItems = document.querySelectorAll('.sidebar .nav-item[data-view]');
         const mobileSelect = document.getElementById('mobileNavSelect');
